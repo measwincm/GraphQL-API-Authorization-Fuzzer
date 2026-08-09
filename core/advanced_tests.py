@@ -63,7 +63,6 @@ class AdvancedTester:
         if not args:
             return f"query {{ {name} {{ __typename }} }}"
         
-        # Build with test arguments
         arg_str = ", ".join([f"{a['name']}: \"test\"" for a in args[:2]])
         return f"query {{ {name}({arg_str}) {{ __typename }} }}"
     
