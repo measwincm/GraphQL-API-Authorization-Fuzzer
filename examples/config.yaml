@@ -2,7 +2,7 @@
 target:
   url: "http://localhost:5013/graphql"
   token: "your-restricted-token-here"
-  baseline_token: "your-privileged-token-here"  # Optional
+  baseline_token: "your-privileged-token-here"
   
 mutations:
   public:
@@ -21,7 +21,6 @@ reporting:
     - html
     - json
     - csv
-    - pdf
   output_dir: "./reports"
   include_timestamps: true
   
