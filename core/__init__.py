@@ -1,1 +1,1 @@
-"""Core functionality modules"""
+"""Core functionality modules for GraphQL AuthZ Fuzzer"""
