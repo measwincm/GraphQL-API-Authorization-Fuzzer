@@ -40,31 +40,31 @@ The **GraphQL API Authorization Fuzzer** is an automated security testing tool t
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                         COMPLETE WORKFLOW                                  │
+│                         COMPLETE WORKFLOW                                   │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
-│  ┌─────────────────┐                                                       │
-│  │    DISCOVERY    │  ← GraphQL Introspection                             │
-│  │   Mutations     │  ← Automatically finds all mutations                 │
-│  └────────┬────────┘                                                       │
+│  ┌─────────────────┐                                                        │
+│  │    DISCOVERY    │  ← GraphQL Introspection                               │
+│  │   Mutations     │  ← Automatically finds all mutations                   │
+│  └────────┬────────┘                                                        │
 │           │                                                                 │
 │           ▼                                                                 │
-│  ┌─────────────────┐                                                       │
-│  │     ATTACK      │  ← Low-privilege token                               │
-│  │   Simulation    │  ← Executes every mutation                           │
-│  └────────┬────────┘                                                       │
+│  ┌─────────────────┐                                                        │
+│  │     ATTACK      │  ← Low-privilege token                                 │
+│  │   Simulation    │  ← Executes every mutation                             │
+│  └────────┬────────┘                                                        │
 │           │                                                                 │
 │           ▼                                                                 │
-│  ┌─────────────────┐                                                       │
-│  │  CLASSIFICATION │  ← CRITICAL / SECURE / HIGH / INFO                   │
-│  │                 │  ← Authorization boundary check                       │
-│  └────────┬────────┘                                                       │
+│  ┌─────────────────┐                                                        │
+│  │  CLASSIFICATION │  ← CRITICAL / SECURE / HIGH / INFO                     │
+│  │                 │  ← Authorization boundary check                        │
+│  └────────┬────────┘                                                        │
 │           │                                                                 │
 │           ▼                                                                 │
-│  ┌─────────────────┐                                                       │
-│  │    REPORTING    │  ← HTML / JSON / CSV                                 │
-│  │                 │  ← Authorization boundary diagram                     │
-│  └─────────────────┘                                                       │
+│  ┌─────────────────┐                                                        │
+│  │    REPORTING    │  ← HTML / JSON / CSV                                   │
+│  │                 │  ← Authorization boundary diagram                      │
+│  └─────────────────┘                                                        │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -382,15 +382,15 @@ graphql-authz-fuzzer/
 │                    FINAL RESULTS                            │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
-│   Total Mutations Tested: 7                                │
+│   Total Mutations Tested: 7                                 │
 │                                                             │
 │   🔴 CRITICAL: 5                                           │
-│   🟠 HIGH: 1                                               │
-│   🟢 SECURE: 0                                             │
-│   ⚪ INFO: 1                                               │
+│   🟠 HIGH:     1                                           │
+│   🟢 SECURE:   0                                           │
+│   ⚪ INFO:     1                                           │
 │                                                             │
-│   Vulnerability Type: BFLA (CWE-285)                       │
-│   OWASP: API Security Top 10 - #5                         │
+│   Vulnerability Type: BFLA (CWE-285)                        │
+│   OWASP: API Security Top 10 - #5                           │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -458,9 +458,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 👨‍💻 Author
 
 **Your Name**
-- GitHub: [@yourusername](https://github.com/yourusername)
-- LinkedIn: [Your LinkedIn](https://linkedin.com/in/yourprofile)
-- Twitter: [@yourhandle](https://twitter.com/yourhandle)
+- GitHub: [@measwincm](https://github.com/measwincm)
+- LinkedIn: [Aswin C.M](https://in.linkedin.com/in/aswin-cm-1543aa37b)
+
 
 ---
 
@@ -485,17 +485,17 @@ If you found this project useful, please give it a star ⭐ on GitHub!
 │                                                             │
 │          ✅ PROJECT COMPLETE - 100% DONE                   │
 │                                                             │
-│   GraphQL API Authorization Fuzzer                         │
-│   Version: 3.0                                             │
-│   Status: Production Ready                                 │
-│   Findings: 5 CRITICAL Vulnerabilities                     │
-│   Reports: HTML ✅ JSON ✅ CSV ✅                          │
+│   GraphQL API Authorization Fuzzer                          │
+│   Version: 3.0                                              │
+│   Status: Production Ready                                  │
+│   Findings: 5 CRITICAL Vulnerabilities                      │
+│   Reports: HTML ✅ JSON ✅ CSV ✅                         |
 │                                                             │
-│   Ready for:                                               │
-│   - GitHub                                                 │
-│   - Resume                                                 │
-│   - LinkedIn                                               │
-│   - Interviews                                             │
+│   Ready for:                                                │
+│   - GitHub                                                  │
+│   - Resume                                                  │
+│   - LinkedIn                                                │
+│   - Interviews                                              │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -503,141 +503,9 @@ If you found this project useful, please give it a star ⭐ on GitHub!
 ---
 
 **Made with ❤️ for API Security**
-```
+
 
 ---
 
-## 📝 ADDITIONAL FILES FOR GITHUB
 
-### LICENSE File
-
-```bash
-cat > LICENSE << 'EOF'
-MIT License
-
-Copyright (c) 2024 [Your Name]
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-EOF
-```
-
-### .gitignore File
-
-```bash
-cat > .gitignore << 'EOF'
-# Python
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-*.so
-*.egg
-*.egg-info/
-dist/
-build/
-.venv/
-venv/
-
-# Token files
-*.txt
-!requirements.txt
-!README.md
-!LICENSE
-
-# Report files
-*.html
-*.json
-*.csv
-!report.html
-!report.json
-!report.csv
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Logs
-*.log
-fuzzer_output.txt
-EOF
-```
-
-### requirements.txt
-
-```bash
-cat > requirements.txt << 'EOF'
-requests>=2.28.0
-EOF
-```
-
----
-
-## 🚀 GITHUB PUSH COMMANDS
-
-```bash
-# Navigate to project
-cd ~/graphql-fuzzer-project
-
-# Initialize git
-git init
-
-# Add all files
-git add .
-git add README.md LICENSE .gitignore requirements.txt
-
-# Commit
-git commit -m "Initial commit: GraphQL API Authorization Fuzzer v3.0"
-
-# Create repository on GitHub first, then push
-git remote add origin https://github.com/yourusername/graphql-authz-fuzzer.git
-git branch -M main
-git push -u origin main
-```
-
----
-
-## 🏷️ GitHub Topics
-
-Add these topics to your repository:
-```
-graphql-security
-graphql-fuzzer
-api-security
-security-testing
-vapt
-bfla
-bola
-graphql
-penetration-testing
-vulnerability-scanner
-python-security
-api-pentesting
-owasp
-cwe-285
-```
-
----
 
