@@ -19,7 +19,12 @@ from datetime import datetime
 from collections import defaultdict
 
 # Import the fuzzer
-from graphql_authz_fuzzer import GraphQLAuthzFuzzer, FuzzResult
+try:
+    from graphql_authz_fuzzer import GraphQLAuthzFuzzer, FuzzResult
+except ImportError:
+    print("Warning: graphql_authz_fuzzer not found, using placeholder")
+    GraphQLAuthzFuzzer = None
+    FuzzResult = None
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'graphql-fuzzer-secret-key-2024'
@@ -28,7 +33,7 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
 # Global scan state
 scan_state = {
-    'status': 'idle',  # idle, scanning, paused, completed, error
+    'status': 'idle',
     'progress': 0,
     'total': 0,
     'completed': 0,
@@ -73,7 +78,6 @@ class ProgressFuzzer(GraphQLAuthzFuzzer):
                     'percentage': (completed / total) * 100
                 }
         
-        # Sort results
         order = {f["name"]: i for i, f in enumerate(fields)}
         self.results.sort(key=lambda r: order.get(r.mutation, 0))
         
@@ -105,6 +109,10 @@ class ProgressFuzzer(GraphQLAuthzFuzzer):
 def dashboard():
     """Main dashboard page"""
     return render_template('dashboard.html')
+
+@app.route('/favicon.ico')
+def favicon():
+    return '', 204
 
 @app.route('/api/status')
 def get_status():
@@ -142,17 +150,26 @@ def reset_scan():
     scan_state['summary'] = {}
     return jsonify({'status': 'reset'})
 
+@socketio.on('connect')
+def handle_connect():
+    """Handle client connection"""
+    print(f'Client connected: {request.sid}')
+    emit('connected', {'status': 'connected'})
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    """Handle client disconnection"""
+    print(f'Client disconnected: {request.sid}')
+
 @socketio.on('start_scan')
 def handle_start_scan(data):
     """Start a new scan from dashboard"""
     global scan_state
     
-    # Don't start if already running
     if scan_state['is_running']:
         emit('scan_error', {'message': 'Scan already in progress'})
         return
     
-    # Parse configuration
     config = {
         'url': data.get('url'),
         'token': data.get('token'),
@@ -175,12 +192,13 @@ def handle_start_scan(data):
     
     emit('scan_started', {'message': 'Scan started', 'config': config})
     
-    # Run scan in background thread
     def run_scan():
         global scan_state
         
         try:
-            # Create fuzzer instance
+            if GraphQLAuthzFuzzer is None:
+                raise ImportError("graphql_authz_fuzzer module not found")
+                
             fuzzer = ProgressFuzzer(
                 url=config['url'],
                 restricted_token=config['token'],
@@ -191,7 +209,6 @@ def handle_start_scan(data):
                 public_mutations=config['public_mutations']
             )
             
-            # Run with progress updates
             for update in fuzzer.run_with_progress():
                 if update['type'] == 'init':
                     scan_state['total'] = update['total']
