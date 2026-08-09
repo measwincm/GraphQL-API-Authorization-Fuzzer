@@ -265,7 +265,6 @@
     </style>
 </head>
 <body>
-    <!-- Navbar -->
     <nav class="navbar navbar-custom">
         <div class="container-fluid">
             <span class="navbar-brand">
@@ -284,7 +283,6 @@
 
     <div class="container-fluid mt-4">
         <div class="row">
-            <!-- Configuration Panel -->
             <div class="col-lg-4">
                 <div class="card-custom">
                     <h5 class="mb-3"><i class="bi bi-gear"></i> Scan Configuration</h5>
@@ -333,7 +331,6 @@
                     </form>
                 </div>
 
-                <!-- Progress -->
                 <div class="card-custom">
                     <h5 class="mb-3"><i class="bi bi-hourglass-split"></i> Progress</h5>
                     <div class="progress-container">
@@ -351,7 +348,6 @@
                     </div>
                 </div>
 
-                <!-- Quick Stats -->
                 <div class="card-custom">
                     <h5 class="mb-3"><i class="bi bi-bar-chart"></i> Quick Stats</h5>
                     <div class="row">
@@ -375,9 +371,7 @@
                 </div>
             </div>
 
-            <!-- Results Panel -->
             <div class="col-lg-8">
-                <!-- Charts -->
                 <div class="row">
                     <div class="col-md-6">
                         <div class="card-custom">
@@ -397,7 +391,6 @@
                     </div>
                 </div>
 
-                <!-- Results Table -->
                 <div class="card-custom">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h5 class="mb-0"><i class="bi bi-list-ul"></i> Results</h5>
@@ -435,11 +428,16 @@
     </div>
 
     <script>
-        // Socket connection
-        const socket = io();
+        const socket = io('http://localhost:5000', {
+            transports: ['websocket', 'polling'],
+            reconnection: true,
+            reconnectionAttempts: 5,
+            reconnectionDelay: 1000,
+            timeout: 20000
+        });
+        
         let severityChart, progressChart;
 
-        // Initialize charts
         function initCharts() {
             const ctx1 = document.getElementById('severityChart').getContext('2d');
             severityChart = new Chart(ctx1, {
@@ -494,7 +492,6 @@
             });
         }
 
-        // Update results table
         function updateResults(results) {
             const tbody = document.getElementById('resultsBody');
             if (!results || results.length === 0) {
@@ -512,7 +509,6 @@
             `).join('');
         }
 
-        // Update stats
         function updateStats(results) {
             const critical = results.filter(r => r.severity === 'Critical').length;
             const high = results.filter(r => r.severity === 'High').length;
@@ -523,12 +519,10 @@
             document.getElementById('secureCount').textContent = secure;
             document.getElementById('totalCount').textContent = results.length;
 
-            // Update chart
             severityChart.data.datasets[0].data = [critical, high, secure, results.length - critical - high - secure];
             severityChart.update();
         }
 
-        // Socket events
         socket.on('connect', () => {
             console.log('Connected to server');
             document.getElementById('liveIndicator').style.display = 'inline';
@@ -550,7 +544,6 @@
             document.getElementById('statusBadge').textContent = 'Scanning';
             document.getElementById('statusBadge').className = 'badge status-badge scanning';
 
-            // Update results
             const results = document.getElementById('resultsBody');
             const newRow = document.createElement('tr');
             const severityClass = `severity-${data.result.severity.toLowerCase()}`;
@@ -561,13 +554,11 @@
                 <td style="font-size:12px; color: var(--text-secondary);">${data.result.detail}</td>
             `;
             
-            // Remove "no results" message if present
             if (results.children.length === 1 && results.children[0].colSpan === 4) {
                 results.innerHTML = '';
             }
             results.appendChild(newRow);
             
-            // Update stats
             const allResults = Array.from(results.children).map(row => ({
                 mutation: row.cells[0].textContent,
                 classification: row.cells[1].textContent,
@@ -584,7 +575,6 @@
             document.getElementById('startBtn').disabled = false;
             document.getElementById('stopBtn').disabled = true;
             
-            // Update progress chart
             const results = data.results || [];
             progressChart.data.labels = results.map(r => r.mutation);
             progressChart.data.datasets[0].data = results.map((_, i) => i + 1);
@@ -608,7 +598,6 @@
             document.getElementById('stopBtn').disabled = true;
         });
 
-        // Form handlers
         document.getElementById('scanForm').addEventListener('submit', (e) => {
             e.preventDefault();
             
@@ -668,10 +657,8 @@
                 });
         });
 
-        // Initialize
         initCharts();
         
-        // Get initial status
         fetch('/api/status')
             .then(res => res.json())
             .then(data => {
