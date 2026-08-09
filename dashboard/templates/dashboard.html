@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GraphQL AuthZ Fuzzer Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0a0e17;
+            --bg-panel: #131a2b;
+            --bg-card: #1a2336;
+            --border-color: #2a3a5c;
+            --text-primary: #e8edf5;
+            --text-secondary: #8899bb;
+            --critical: #ff4757;
+            --high: #ff6b35;
+            --secure: #2ed573;
+            --info: #4a90e2;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'IBM Plex Mono', monospace;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .navbar-custom {
+            background: var(--bg-panel) !important;
+            border-bottom: 1px solid var(--border-color);
+            padding: 15px 0;
+        }
+        
+        .navbar-custom .navbar-brand {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .navbar-custom .navbar-brand span {
+            color: var(--info);
+        }
+        
+        .status-badge {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .status-badge.idle { background: var(--bg-card); color: var(--text-secondary); }
+        .status-badge.scanning { background: #ff6b3522; color: var(--high); animation: pulse 1.5s infinite; }
+        .status-badge.completed { background: #2ed57322; color: var(--secure); }
+        .status-badge.error { background: #ff475722; color: var(--critical); }
+        .status-badge.stopped { background: #ff6b3522; color: var(--high); }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .card-custom {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+        }
+        
+        .card-custom:hover {
+            border-color: #3a5a8c;
+            transform: translateY(-2px);
+        }
+        
+        .stat-number {
+            font-size: 32px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .stat-critical .stat-number { color: var(--critical); }
+        .stat-high .stat-number { color: var(--high); }
+        .stat-secure .stat-number { color: var(--secure); }
+        .stat-total .stat-number { color: var(--info); }
+        
+        .mutation-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            background: var(--bg-panel);
+            border-radius: 6px;
+            margin-bottom: 5px;
+        }
+        
+        .mutation-status .icon {
+            font-size: 18px;
+        }
+        
+        .mutation-status .name {
+            flex: 1;
+            font-size: 14px;
+        }
+        
+        .mutation-status .severity {
+            font-size: 11px;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-weight: 500;
+        }
+        
+        .severity-critical { background: #ff475722; color: var(--critical); }
+        .severity-high { background: #ff6b3522; color: var(--high); }
+        .severity-secure { background: #2ed57322; color: var(--secure); }
+        .severity-info { background: #4a90e222; color: var(--info); }
+        
+        .progress-container {
+            background: var(--bg-panel);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        .progress-bar-custom {
+            height: 8px;
+            background: var(--bg-dark);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        
+        .progress-bar-custom .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--info), var(--secure));
+            border-radius: 4px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+        
+        .config-input {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            border-radius: 6px;
+            padding: 10px 14px;
+            width: 100%;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 13px;
+        }
+        
+        .config-input:focus {
+            outline: none;
+            border-color: var(--info);
+        }
+        
+        .config-input::placeholder {
+            color: var(--text-secondary);
+        }
+        
+        .btn-custom {
+            padding: 10px 25px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 500;
+            font-family: 'IBM Plex Mono', monospace;
+            transition: all 0.3s;
+        }
+        
+        .btn-start {
+            background: var(--secure);
+            color: var(--bg-dark);
+        }
+        
+        .btn-start:hover:not(:disabled) {
+            transform: scale(1.05);
+            opacity: 0.9;
+        }
+        
+        .btn-start:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .btn-stop {
+            background: var(--critical);
+            color: white;
+        }
+        
+        .btn-stop:hover:not(:disabled) {
+            transform: scale(1.05);
+            opacity: 0.9;
+        }
+        
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .results-table th {
+            text-align: left;
+            color: var(--text-secondary);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 10px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .results-table td {
+            padding: 10px;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 13px;
+        }
+        
+        .results-table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .results-table tr:hover {
+            background: var(--bg-panel);
+        }
+        
+        .live-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            background: var(--secure);
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 1.5s infinite;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 200px;
+        }
+        
+        .text-muted-custom {
+            color: var(--text-secondary);
+        }
+        
+        @media (max-width: 768px) {
+            .stat-number { font-size: 24px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-custom">
+        <div class="container-fluid">
+            <span class="navbar-brand">
+                <i class="bi bi-shield-lock"></i> 
+                GraphQL AuthZ <span>Fuzzer</span>
+                <span class="badge bg-success ms-2" id="statusBadge">Ready</span>
+            </span>
+            <div class="d-flex align-items-center">
+                <span id="liveIndicator" style="display:none;">
+                    <span class="live-indicator"></span>
+                    <span class="text-muted-custom" style="font-size:12px;">Live</span>
+                </span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <!-- Configuration Panel -->
+            <div class="col-lg-4">
+                <div class="card-custom">
+                    <h5 class="mb-3"><i class="bi bi-gear"></i> Scan Configuration</h5>
+                    <form id="scanForm">
+                        <div class="mb-3">
+                            <label class="form-label text-muted-custom" style="font-size:12px;">GraphQL Endpoint</label>
+                            <input type="url" class="config-input" id="endpoint" 
+                                   value="http://localhost:5013/graphql" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-muted-custom" style="font-size:12px;">Restricted Token</label>
+                            <input type="password" class="config-input" id="token" 
+                                   placeholder="Enter restricted token" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-muted-custom" style="font-size:12px;">Baseline Token (Optional)</label>
+                            <input type="password" class="config-input" id="baselineToken" 
+                                   placeholder="Enter privileged token">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-muted-custom" style="font-size:12px;">Public Mutations</label>
+                            <input type="text" class="config-input" id="publicMutations" 
+                                   value="login,createUser" placeholder="Comma-separated">
+                        </div>
+                        <div class="row">
+                            <div class="col-6 mb-3">
+                                <label class="form-label text-muted-custom" style="font-size:12px;">Workers</label>
+                                <input type="number" class="config-input" id="workers" value="4" min="1" max="20">
+                            </div>
+                            <div class="col-6 mb-3">
+                                <label class="form-label text-muted-custom" style="font-size:12px;">Timeout (s)</label>
+                                <input type="number" class="config-input" id="timeout" value="8" min="1">
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-start btn-custom" id="startBtn">
+                                <i class="bi bi-play-fill"></i> Start Scan
+                            </button>
+                            <button type="button" class="btn btn-stop btn-custom" id="stopBtn" disabled>
+                                <i class="bi bi-stop-fill"></i> Stop
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-custom" id="resetBtn">
+                                <i class="bi bi-arrow-counterclockwise"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Progress -->
+                <div class="card-custom">
+                    <h5 class="mb-3"><i class="bi bi-hourglass-split"></i> Progress</h5>
+                    <div class="progress-container">
+                        <div class="d-flex justify-content-between">
+                            <span id="currentMutation" class="text-muted-custom" style="font-size:13px;">Waiting to start...</span>
+                            <span id="progressText" class="text-muted-custom" style="font-size:13px;">0%</span>
+                        </div>
+                        <div class="progress-bar-custom">
+                            <div class="progress-fill" id="progressFill"></div>
+                        </div>
+                        <div class="d-flex justify-content-between mt-2">
+                            <span id="completedText" class="text-muted-custom" style="font-size:12px;">0 / 0</span>
+                            <span id="statusText" class="text-muted-custom" style="font-size:12px;">Idle</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Stats -->
+                <div class="card-custom">
+                    <h5 class="mb-3"><i class="bi bi-bar-chart"></i> Quick Stats</h5>
+                    <div class="row">
+                        <div class="col-6 stat-critical">
+                            <div class="stat-number" id="criticalCount">0</div>
+                            <div class="stat-label">Critical</div>
+                        </div>
+                        <div class="col-6 stat-high">
+                            <div class="stat-number" id="highCount">0</div>
+                            <div class="stat-label">High</div>
+                        </div>
+                        <div class="col-6 stat-secure">
+                            <div class="stat-number" id="secureCount">0</div>
+                            <div class="stat-label">Secure</div>
+                        </div>
+                        <div class="col-6 stat-total">
+                            <div class="stat-number" id="totalCount">0</div>
+                            <div class="stat-label">Total</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Panel -->
+            <div class="col-lg-8">
+                <!-- Charts -->
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card-custom">
+                            <h6 class="text-muted-custom mb-3">Severity Distribution</h6>
+                            <div class="chart-container">
+                                <canvas id="severityChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card-custom">
+                            <h6 class="text-muted-custom mb-3">Scan Progress</h6>
+                            <div class="chart-container">
+                                <canvas id="progressChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Results Table -->
+                <div class="card-custom">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0"><i class="bi bi-list-ul"></i> Results</h5>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-sm btn-outline-secondary" id="exportBtn">
+                                <i class="bi bi-download"></i> Export
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary" id="clearResultsBtn">
+                                <i class="bi bi-trash"></i> Clear
+                            </button>
+                        </div>
+                    </div>
+                    <div style="max-height: 400px; overflow-y: auto;">
+                        <table class="results-table">
+                            <thead>
+                                <tr>
+                                    <th>Mutation</th>
+                                    <th>Status</th>
+                                    <th>Severity</th>
+                                    <th>Details</th>
+                                </tr>
+                            </thead>
+                            <tbody id="resultsBody">
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted-custom">
+                                        No results yet. Start a scan!
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Socket connection
+        const socket = io();
+        let severityChart, progressChart;
+
+        // Initialize charts
+        function initCharts() {
+            const ctx1 = document.getElementById('severityChart').getContext('2d');
+            severityChart = new Chart(ctx1, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Critical', 'High', 'Secure', 'Info'],
+                    datasets: [{
+                        data: [0, 0, 0, 0],
+                        backgroundColor: ['#ff4757', '#ff6b35', '#2ed573', '#4a90e2']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { 
+                            position: 'bottom',
+                            labels: { color: '#8899bb' }
+                        }
+                    }
+                }
+            });
+
+            const ctx2 = document.getElementById('progressChart').getContext('2d');
+            progressChart = new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Mutations Tested',
+                        data: [],
+                        backgroundColor: '#4a90e2',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { 
+                            beginAtZero: true,
+                            ticks: { color: '#8899bb' }
+                        },
+                        x: {
+                            ticks: { color: '#8899bb', maxRotation: 45, font: { size: 10 } }
+                        }
+                    },
+                    plugins: {
+                        legend: { labels: { color: '#8899bb' } }
+                    }
+                }
+            });
+        }
+
+        // Update results table
+        function updateResults(results) {
+            const tbody = document.getElementById('resultsBody');
+            if (!results || results.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted-custom">No results yet</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = results.map(r => `
+                <tr>
+                    <td><strong>${r.mutation}</strong></td>
+                    <td>${r.classification}</td>
+                    <td><span class="severity severity-${r.severity.toLowerCase()}">${r.severity}</span></td>
+                    <td style="font-size:12px; color: var(--text-secondary);">${r.detail}</td>
+                </tr>
+            `).join('');
+        }
+
+        // Update stats
+        function updateStats(results) {
+            const critical = results.filter(r => r.severity === 'Critical').length;
+            const high = results.filter(r => r.severity === 'High').length;
+            const secure = results.filter(r => r.severity === 'Secure').length;
+            
+            document.getElementById('criticalCount').textContent = critical;
+            document.getElementById('highCount').textContent = high;
+            document.getElementById('secureCount').textContent = secure;
+            document.getElementById('totalCount').textContent = results.length;
+
+            // Update chart
+            severityChart.data.datasets[0].data = [critical, high, secure, results.length - critical - high - secure];
+            severityChart.update();
+        }
+
+        // Socket events
+        socket.on('connect', () => {
+            console.log('Connected to server');
+            document.getElementById('liveIndicator').style.display = 'inline';
+        });
+
+        socket.on('scan_init', (data) => {
+            document.getElementById('statusText').textContent = 'Initializing...';
+            document.getElementById('totalCount').textContent = data.total;
+            document.getElementById('completedText').textContent = `0 / ${data.total}`;
+        });
+
+        socket.on('scan_progress', (data) => {
+            const percentage = Math.round(data.percentage);
+            document.getElementById('currentMutation').textContent = `Testing: ${data.mutation}`;
+            document.getElementById('progressFill').style.width = `${percentage}%`;
+            document.getElementById('progressText').textContent = `${percentage}%`;
+            document.getElementById('completedText').textContent = `${data.completed} / ${data.total}`;
+            document.getElementById('statusText').textContent = 'Scanning...';
+            document.getElementById('statusBadge').textContent = 'Scanning';
+            document.getElementById('statusBadge').className = 'badge status-badge scanning';
+
+            // Update results
+            const results = document.getElementById('resultsBody');
+            const newRow = document.createElement('tr');
+            const severityClass = `severity-${data.result.severity.toLowerCase()}`;
+            newRow.innerHTML = `
+                <td><strong>${data.mutation}</strong></td>
+                <td>${data.result.classification}</td>
+                <td><span class="severity ${severityClass}">${data.result.severity}</span></td>
+                <td style="font-size:12px; color: var(--text-secondary);">${data.result.detail}</td>
+            `;
+            
+            // Remove "no results" message if present
+            if (results.children.length === 1 && results.children[0].colSpan === 4) {
+                results.innerHTML = '';
+            }
+            results.appendChild(newRow);
+            
+            // Update stats
+            const allResults = Array.from(results.children).map(row => ({
+                mutation: row.cells[0].textContent,
+                classification: row.cells[1].textContent,
+                severity: row.cells[2].textContent.trim(),
+                detail: row.cells[3].textContent
+            }));
+            updateStats(allResults);
+        });
+
+        socket.on('scan_complete', (data) => {
+            document.getElementById('statusText').textContent = 'Completed!';
+            document.getElementById('statusBadge').textContent = 'Completed';
+            document.getElementById('statusBadge').className = 'badge status-badge completed';
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+            
+            // Update progress chart
+            const results = data.results || [];
+            progressChart.data.labels = results.map(r => r.mutation);
+            progressChart.data.datasets[0].data = results.map((_, i) => i + 1);
+            progressChart.update();
+        });
+
+        socket.on('scan_error', (data) => {
+            document.getElementById('statusText').textContent = `Error: ${data.message}`;
+            document.getElementById('statusBadge').textContent = 'Error';
+            document.getElementById('statusBadge').className = 'badge status-badge error';
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+            alert(`Scan error: ${data.message}`);
+        });
+
+        socket.on('scan_stopped', (data) => {
+            document.getElementById('statusText').textContent = 'Stopped';
+            document.getElementById('statusBadge').textContent = 'Stopped';
+            document.getElementById('statusBadge').className = 'badge status-badge stopped';
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+        });
+
+        // Form handlers
+        document.getElementById('scanForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const data = {
+                url: document.getElementById('endpoint').value,
+                token: document.getElementById('token').value,
+                baseline_token: document.getElementById('baselineToken').value,
+                public_mutations: document.getElementById('publicMutations').value,
+                workers: parseInt(document.getElementById('workers').value),
+                timeout: parseInt(document.getElementById('timeout').value)
+            };
+
+            if (!data.token) {
+                alert('Please enter a restricted token');
+                return;
+            }
+
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('stopBtn').disabled = false;
+            document.getElementById('resultsBody').innerHTML = 
+                '<tr><td colspan="4" class="text-center text-muted-custom">Scanning... Please wait</td></tr>';
+
+            socket.emit('start_scan', data);
+        });
+
+        document.getElementById('stopBtn').addEventListener('click', () => {
+            socket.emit('stop_scan');
+            document.getElementById('stopBtn').disabled = true;
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            if (confirm('Reset all results?')) {
+                fetch('/api/reset')
+                    .then(() => {
+                        location.reload();
+                    });
+            }
+        });
+
+        document.getElementById('clearResultsBtn').addEventListener('click', () => {
+            document.getElementById('resultsBody').innerHTML = 
+                '<tr><td colspan="4" class="text-center text-muted-custom">No results yet</td></tr>';
+            updateStats([]);
+        });
+
+        document.getElementById('exportBtn').addEventListener('click', () => {
+            fetch('/api/results')
+                .then(res => res.json())
+                .then(data => {
+                    const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `scan_results_${new Date().toISOString().slice(0,10)}.json`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                });
+        });
+
+        // Initialize
+        initCharts();
+        
+        // Get initial status
+        fetch('/api/status')
+            .then(res => res.json())
+            .then(data => {
+                if (data.is_running) {
+                    document.getElementById('startBtn').disabled = true;
+                    document.getElementById('stopBtn').disabled = false;
+                }
+            });
+    </script>
+</body>
+</html>
