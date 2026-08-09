@@ -1,0 +1,38 @@
+# GraphQL AuthZ Fuzzer Configuration
+target:
+  url: "http://localhost:5013/graphql"
+  token: "your-restricted-token-here"
+  baseline_token: "your-privileged-token-here"  # Optional
+  
+mutations:
+  public:
+    - login
+    - createUser
+    - register
+  
+scan:
+  timeout: 8
+  retries: 2
+  workers: 4
+  concurrent_requests: true
+  
+reporting:
+  formats:
+    - html
+    - json
+    - csv
+    - pdf
+  output_dir: "./reports"
+  include_timestamps: true
+  
+dashboard:
+  enabled: true
+  port: 5000
+  host: "0.0.0.0"
+  debug: false
+  
+advanced:
+  test_queries: true
+  test_idor: true
+  test_batch: false
+  rate_limit_detection: true
