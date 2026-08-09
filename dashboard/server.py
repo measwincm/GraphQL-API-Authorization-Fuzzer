@@ -265,4 +265,4 @@ def handle_stop_scan():
         emit('scan_error', {'message': 'No scan in progress'})
 
 if __name__ == '__main__':
-    socketio.run(app, debug=True, port=5000, host='0.0.0.0')
+    socketio.run(app, debug=True, port=5000, host='0.0.0.0', allow_unsafe_werkzeug=True)
