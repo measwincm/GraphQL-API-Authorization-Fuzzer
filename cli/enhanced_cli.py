@@ -28,7 +28,6 @@ def interactive_scan():
     print("🔍 GraphQL AuthZ Fuzzer - Interactive Mode")
     print("="*60 + "\n")
     
-    # Get configuration interactively
     url = input("GraphQL endpoint URL: ").strip()
     token = input("Restricted token: ").strip()
     baseline = input("Baseline token (optional): ").strip() or None
@@ -38,7 +37,6 @@ def interactive_scan():
     
     print("\n🚀 Starting scan...\n")
     
-    # Create fuzzer
     fuzzer = GraphQLAuthzFuzzer(
         url=url,
         restricted_token=token,
@@ -49,7 +47,6 @@ def interactive_scan():
         workers=4
     )
     
-    # Discover mutations
     print("🔎 Discovering mutations...")
     fields = fuzzer.discover_mutations()
     
@@ -59,7 +56,6 @@ def interactive_scan():
     
     print(f"✅ Found {len(fields)} mutations\n")
     
-    # Run tests with progress
     results = []
     total = len(fields)
     
@@ -92,7 +88,6 @@ def interactive_scan():
         for r in critical:
             print(f"  → {r.mutation}: {r.detail}")
     
-    # Save results
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f"scan_results_{timestamp}.json"
     
@@ -124,7 +119,6 @@ def main():
         interactive_scan()
         return
     
-    # Normal mode
     from graphql_authz_fuzzer import GraphQLAuthzFuzzer
     from graphql_authz_fuzzer import generate_html_report, generate_json_report, generate_csv_report
     
@@ -143,7 +137,6 @@ def main():
     
     print(f"✅ Found {len(fields)} mutations, tested {len(results)}")
     
-    # Generate reports
     generate_html_report(args.url, results, args.html)
     generate_json_report(results, args.json)
     generate_csv_report(results, args.csv)
