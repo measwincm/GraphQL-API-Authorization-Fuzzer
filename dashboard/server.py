@@ -6,7 +6,6 @@ Real-time monitoring and control interface
 
 import sys
 import os
-# Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from flask import Flask, render_template, jsonify, request
@@ -22,7 +21,7 @@ from collections import defaultdict
 try:
     from graphql_authz_fuzzer import GraphQLAuthzFuzzer, FuzzResult
 except ImportError:
-    print("Warning: graphql_authz_fuzzer not found, using placeholder")
+    print("Warning: graphql_authz_fuzzer not found")
     GraphQLAuthzFuzzer = None
     FuzzResult = None
 
@@ -44,7 +43,8 @@ scan_state = {
     'end_time': None,
     'config': {},
     'is_running': False,
-    'scan_id': None
+    'scan_id': None,
+    'summary': {}
 }
 
 class ProgressFuzzer(GraphQLAuthzFuzzer):
@@ -150,20 +150,112 @@ def reset_scan():
     scan_state['summary'] = {}
     return jsonify({'status': 'reset'})
 
+@app.route('/start_scan', methods=['POST'])
+def start_scan_http():
+    """Start a scan via HTTP POST"""
+    global scan_state
+    
+    if scan_state['is_running']:
+        return jsonify({'error': 'Scan already in progress'}), 400
+    
+    data = request.json
+    if not data:
+        return jsonify({'error': 'No JSON data provided'}), 400
+    
+    config = {
+        'url': data.get('url'),
+        'token': data.get('token'),
+        'baseline_token': data.get('baseline_token'),
+        'public_mutations': [m.strip() for m in data.get('public_mutations', '').split(',') if m.strip()],
+        'timeout': float(data.get('timeout', 8)),
+        'retries': int(data.get('retries', 1)),
+        'workers': int(data.get('workers', 4))
+    }
+    
+    if not config['url'] or not config['token']:
+        return jsonify({'error': 'URL and token are required'}), 400
+    
+    scan_state['config'] = config
+    scan_state['status'] = 'scanning'
+    scan_state['is_running'] = True
+    scan_state['start_time'] = datetime.now().isoformat()
+    scan_state['results'] = []
+    scan_state['current_mutation'] = ''
+    scan_state['progress'] = 0
+    scan_state['completed'] = 0
+    scan_state['total'] = 0
+    
+    def run_scan():
+        global scan_state
+        try:
+            if GraphQLAuthzFuzzer is None:
+                raise ImportError("graphql_authz_fuzzer module not found")
+                
+            fuzzer = ProgressFuzzer(
+                url=config['url'],
+                restricted_token=config['token'],
+                baseline_token=config.get('baseline_token'),
+                timeout=config['timeout'],
+                retries=config['retries'],
+                workers=config['workers'],
+                public_mutations=config['public_mutations']
+            )
+            
+            for update in fuzzer.run_with_progress():
+                if update['type'] == 'init':
+                    scan_state['total'] = update['total']
+                    socketio.emit('scan_init', {
+                        'total': update['total'],
+                        'fields': update['fields']
+                    })
+                elif update['type'] == 'progress':
+                    scan_state['completed'] = update['completed']
+                    scan_state['progress'] = update['percentage']
+                    scan_state['current_mutation'] = update['mutation']
+                    scan_state['results'].append(update['result'])
+                    
+                    socketio.emit('scan_progress', {
+                        'mutation': update['mutation'],
+                        'result': update['result'],
+                        'completed': update['completed'],
+                        'total': update['total'],
+                        'percentage': update['percentage']
+                    })
+                elif update['type'] == 'complete':
+                    scan_state['status'] = 'completed'
+                    scan_state['is_running'] = False
+                    scan_state['end_time'] = datetime.now().isoformat()
+                    scan_state['summary'] = update['summary']
+                    
+                    socketio.emit('scan_complete', {
+                        'results': update['results'],
+                        'summary': update['summary']
+                    })
+        except Exception as e:
+            scan_state['status'] = 'error'
+            scan_state['is_running'] = False
+            scan_state['current_message'] = str(e)
+            print(f"Scan error: {e}")
+            socketio.emit('scan_error', {'message': str(e)})
+    
+    thread = threading.Thread(target=run_scan)
+    thread.daemon = True
+    thread.start()
+    
+    return jsonify({'message': 'Scan started', 'config': config})
+
 @socketio.on('connect')
 def handle_connect():
-    """Handle client connection"""
     print(f'Client connected: {request.sid}')
     emit('connected', {'status': 'connected'})
 
 @socketio.on('disconnect')
 def handle_disconnect():
-    """Handle client disconnection"""
     print(f'Client disconnected: {request.sid}')
 
 @socketio.on('start_scan')
 def handle_start_scan(data):
-    """Start a new scan from dashboard"""
+    """Start a scan via WebSocket"""
     global scan_state
     
     if scan_state['is_running']:
@@ -194,7 +286,6 @@ def handle_start_scan(data):
     
     def run_scan():
         global scan_state
-        
         try:
             if GraphQLAuthzFuzzer is None:
                 raise ImportError("graphql_authz_fuzzer module not found")
@@ -216,7 +307,6 @@ def handle_start_scan(data):
                         'total': update['total'],
                         'fields': update['fields']
                     })
-                
                 elif update['type'] == 'progress':
                     scan_state['completed'] = update['completed']
                     scan_state['progress'] = update['percentage']
@@ -230,7 +320,6 @@ def handle_start_scan(data):
                         'total': update['total'],
                         'percentage': update['percentage']
                     })
-                
                 elif update['type'] == 'complete':
                     scan_state['status'] = 'completed'
                     scan_state['is_running'] = False
@@ -241,11 +330,11 @@ def handle_start_scan(data):
                         'results': update['results'],
                         'summary': update['summary']
                     })
-        
         except Exception as e:
             scan_state['status'] = 'error'
             scan_state['is_running'] = False
             scan_state['current_message'] = str(e)
+            print(f"Scan error: {e}")
             socketio.emit('scan_error', {'message': str(e)})
     
     thread = threading.Thread(target=run_scan)
@@ -254,7 +343,6 @@ def handle_start_scan(data):
 
 @socketio.on('stop_scan')
 def handle_stop_scan():
-    """Stop the current scan"""
     global scan_state
     if scan_state['is_running']:
         scan_state['status'] = 'stopped'
