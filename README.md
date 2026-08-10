@@ -1,30 +1,28 @@
+
 # 🔍 GraphQL API Authorization Fuzzer
 
-[![Python](https://img.shields.io/badge/Python-3.9%2B-blue.svg)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Security](https://img.shields.io/badge/Security-VAPT-red.svg)](https://owasp.org/)
+[![Security](https://img.shields.io/badge/Security-Testing-red.svg)](https://owasp.org/www-project-api-security/)
 [![GraphQL](https://img.shields.io/badge/GraphQL-API-purple.svg)](https://graphql.org/)
 
-> Automated GraphQL API security testing tool that detects Broken Function Level Authorization (BFLA) vulnerabilities by testing restricted tokens against mutations.
-
----
+Automated GraphQL API security testing tool that detects **Broken Function Level Authorization (BFLA)** vulnerabilities by testing restricted tokens against mutations.
 
 ## 📖 Table of Contents
 
 - [Overview](#overview)
 - [Why This Project](#why-this-project)
-- [How It Works](#how-it-works)
 - [Features](#features)
+- [Dashboard Preview](#dashboard-preview)
 - [Quick Start](#quick-start)
 - [Installation](#installation)
 - [Usage](#usage)
+- [Dashboard Guide](#dashboard-guide)
 - [Command Line Options](#command-line-options)
 - [Sample Output](#sample-output)
 - [Reports](#reports)
 - [Project Structure](#project-structure)
-- [Results](#results)
 - [Technologies Used](#technologies-used)
-- [Skills Demonstrated](#skills-demonstrated)
 - [Limitations](#limitations)
 - [Future Improvements](#future-improvements)
 - [License](#license)
@@ -74,64 +72,20 @@ The **GraphQL API Authorization Fuzzer** is an automated security testing tool t
 ## 🎯 Why This Project
 
 ### The Problem
-Most APIs check authentication (is the user logged in?) carefully, but often fail to check **authorization** (is this specific user allowed to run this specific action?). This gap is a well-known vulnerability class called **Broken Function Level Authorization (BFLA)**, catalogued as **CWE-285**.
+Most APIs check authentication (is the user logged in?) carefully, but often fail to check authorization (is this specific user allowed to run this specific action?). This gap is a well-known vulnerability class called **Broken Function Level Authorization (BFLA)**, catalogued as **CWE-285**.
 
 ### Real-World Impact
 - **CVE-2025-11340**: GitLab's read-only tokens could execute write mutations
 - **OWASP API Security Top 10**: #5 - Broken Function Level Authorization
 - **Companies using GraphQL**: GitHub, Shopify, Netflix, Meta
-- **GraphQL adoption growing 30% year-over-year**
+- **GraphQL adoption**: Growing 30% year-over-year
 
 ### Why This Tool Matters
-- Automates manual security testing
-- Reduces human error
-- Generates audit-ready reports
-- Can be integrated into CI/CD pipelines
-
----
-
-## ⚙️ How It Works
-
-### Phase 1: Schema Discovery
-The tool uses GraphQL introspection to automatically discover all mutations:
-
-```graphql
-query {
-  __schema {
-    mutationType {
-      fields {
-        name
-        args {
-          name
-          type {
-            name
-            kind
-          }
-        }
-      }
-    }
-  }
-}
-```
-
-### Phase 2: Intelligent Input Generation
-For each mutation, the tool generates test inputs based on argument types:
-
-| Type | Test Value | Purpose |
-|------|-----------|---------|
-| String | `"authz-fuzzer-probe"` | Traceable test data |
-| Int | `999999999` | Non-existent ID |
-| Boolean | `false` | Minimum privilege |
-| ID | `"999999999"` | Non-existent resource |
-
-### Phase 3: Response Classification
-
-| Response | Classification | Severity | Meaning |
-|----------|---------------|----------|---------|
-| ✅ SUCCESS | CRITICAL | 🔴 High | Token bypassed authorization! |
-| ❌ Auth Error | SECURE | 🟢 Low | Token properly blocked |
-| ❌ Schema Error | INFO | ⚪ Info | Invalid test data |
-| 🔓 Public Endpoint | PUBLIC | ⚪ Info | Intentionally open |
+- ✅ Automates manual security testing
+- ✅ Reduces human error
+- ✅ Generates audit-ready reports
+- ✅ Can be integrated into CI/CD pipelines
+- ✅ **NEW**: Real-time dashboard for live monitoring
 
 ---
 
@@ -144,10 +98,57 @@ For each mutation, the tool generates test inputs based on argument types:
 | 📊 **Response Classification** | Categorizes results into CRITICAL, HIGH, SECURE, and INFO |
 | 📄 **Multiple Reports** | HTML (interactive dashboard), JSON (CI/CD), CSV (Excel) |
 | 🎨 **Professional HTML Report** | Interactive report with authorization boundary diagrams |
+| 📊 **Live Dashboard** | **NEW!** Real-time monitoring with WebSocket updates |
+| 📈 **Severity Charts** | Visual representation of vulnerability distribution |
+| ⚡ **Real-time Progress** | Live progress bar and mutation status updates |
+| 💾 **Export Results** | One-click export of scan results to JSON |
 | 🔄 **Concurrent Testing** | Multi-threaded for fast execution |
 | ⚙️ **CLI Interface** | Full command-line configuration |
 | 🛡️ **False-Positive Reduction** | Public mutation allowlist and baseline token verification |
-| 📦 **Lightweight** | Minimal dependencies (only `requests` library) |
+| 📦 **Lightweight** | Minimal dependencies |
+
+---
+
+## 🖥️ Dashboard Preview
+
+### Live Dashboard Interface
+
+```
+GRAPHQL AUTHZ FUZZER                                      ● READY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+┌─ SCAN CONFIGURATION ─────────────┐    ┌─ SEVERITY ──────────────────────────┐
+│                                  │    │                                     │
+│  GraphQL Endpoint                │    │  CRITICAL    ████████████   5       │
+│  ************************        │    │  HIGH        ██             1       │
+│                                  │    │  SECURE      ░░             0       │
+│  Restricted Token                │    │  INFO        ██             1       │
+│  ************************        │    │                                     │
+│                                  │    └─────────────────────────────────────┘
+│  Public Mutations                │
+│  ________________________        │    ┌─ SCAN PROGRESS ─────────────────────┐
+│                                  │    │                                     │
+│  [ START SCAN ]                  │    │  ██████████████████████████  100%   │
+│                                  │    │                                     │
+└──────────────────────────────────┘    └─────────────────────────────────────┘
+
+
+┌─ PROGRESS ───────────────────────┐    ┌─ RESULTS ───────────────────────────┐
+│                                  │    │                                     │
+│  Testing: importPaste            │    │  Mutation       Status    Severity  │
+│                                  │    │  ─────────────────────────────────  │
+│  ████████████████████████ 100%   │    │  createPaste    SUCCESS   Critical  │
+│                                  │    │  editPaste      SUCCESS   Critical  │
+│  7 / 7  Completed!               │    │  deletePaste    SUCCESS   Critical  │
+│                                  │    │  uploadPaste    SUCCESS   Critical  │
+└──────────────────────────────────┘    │  importPaste    SUCCESS   Critical  │
+                                        │                                     │
+┌─ QUICK STATS ────────────────────┐    └─────────────────────────────────────┘
+│                                  │
+│  5 Critical   1 High             │
+│  0 Secure     7 Total            │
+└──────────────────────────────────┘
+```
 
 ---
 
@@ -161,18 +162,33 @@ python3 --version
 
 # Docker (for DVGA target)
 docker --version
-
-# Install dependencies
-pip install requests
 ```
 
-### Step 1: Start DVGA Container
+### Step 1: Clone the Repository
+
+```bash
+git clone https://github.com/measwincm/GraphQL-API-Authorization-Fuzzer.git
+cd GraphQL-API-Authorization-Fuzzer
+```
+
+### Step 2: Install Dependencies
+
+```bash
+# Create virtual environment
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install requirements
+pip install -r requirements.txt
+```
+
+### Step 3: Start DVGA Container (Testing Target)
 
 ```bash
 docker run -d -t -p 5013:5013 -e WEB_HOST=0.0.0.0 --name dvga dolevf/dvga
 ```
 
-### Step 2: Get Authentication Token
+### Step 4: Get Authentication Token
 
 ```bash
 # Create user
@@ -185,10 +201,20 @@ TOKEN=$(curl -s -X POST http://localhost:5013/graphql \
   -H "Content-Type: application/json" \
   -d '{"query": "mutation { login(username: \"vaptuser\", password: \"vaptpass123\") { accessToken } }"}' \
   | python3 -c "import sys, json; data=json.load(sys.stdin); print(data['data']['login']['accessToken'])")
+
 echo "$TOKEN" > htoken.txt
 ```
 
-### Step 3: Run the Fuzzer
+### Step 5: Run the Dashboard
+
+```bash
+# Start the dashboard
+python3 dashboard/server.py
+
+# Open browser to http://127.0.0.1:5000
+```
+
+### Step 6: Run the CLI Fuzzer
 
 ```bash
 python3 graphql_authz_fuzzer.py \
@@ -200,19 +226,6 @@ python3 graphql_authz_fuzzer.py \
   --csv-out report.csv
 ```
 
-### Step 4: View Reports
-
-```bash
-# Open HTML report
-firefox report.html
-
-# View JSON
-cat report.json | python3 -m json.tool
-
-# View CSV
-cat report.csv
-```
-
 ---
 
 ## 📦 Installation
@@ -220,8 +233,8 @@ cat report.csv
 ### Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/graphql-authz-fuzzer.git
-cd graphql-authz-fuzzer
+git clone https://github.com/measwincm/GraphQL-API-Authorization-Fuzzer.git
+cd GraphQL-API-Authorization-Fuzzer
 ```
 
 ### Install Dependencies
@@ -240,7 +253,7 @@ chmod +x graphql_authz_fuzzer.py
 
 ## 🛠️ Usage
 
-### Basic Command
+### Command Line Interface (CLI)
 
 ```bash
 python3 graphql_authz_fuzzer.py \
@@ -253,14 +266,69 @@ python3 graphql_authz_fuzzer.py \
 
 ```bash
 python3 graphql_authz_fuzzer.py \
-  --url <GRAPHQL_ENDPOINT> \
-  --token <RESTRICTED_TOKEN> \
+  --url http://localhost:5013/graphql \
+  --token "$(cat htoken.txt)" \
   --baseline-token <PRIVILEGED_TOKEN> \
   --public-mutations "login,createUser" \
   --html-out report.html \
   --json-out report.json \
   --csv-out report.csv
 ```
+
+### Interactive Mode
+
+```bash
+python3 cli/enhanced_cli.py --interactive
+```
+
+### Dashboard Mode
+
+```bash
+# Start the dashboard server
+python3 dashboard/server.py
+
+# Open browser to http://127.0.0.1:5000
+```
+
+---
+
+## 🖥️ Dashboard Guide
+
+### Dashboard Features
+
+1. **Configuration Panel**
+   - GraphQL Endpoint URL
+   - Restricted Token (required)
+   - Baseline Token (optional)
+   - Public Mutations (comma-separated)
+   - Worker count
+   - Timeout in seconds
+
+2. **Real-time Progress**
+   - Live progress bar
+   - Current mutation being tested
+   - Completion percentage
+   - Mutations tested / Total
+
+3. **Quick Stats**
+   - Critical vulnerabilities count
+   - High severity count
+   - Secure mutations count
+   - Total mutations tested
+
+4. **Visualizations**
+   - Severity distribution (donut chart)
+   - Scan progress (bar chart)
+
+5. **Results Table**
+   - Mutation name
+   - Classification (SUCCESS, ERROR, etc.)
+   - Severity (Critical, High, Secure, Info)
+   - Detailed error/success messages
+
+6. **Export Functionality**
+   - One-click export to JSON
+   - Download scan results
 
 ---
 
@@ -271,14 +339,14 @@ python3 graphql_authz_fuzzer.py \
 | `--url` | ✅ Yes | - | GraphQL endpoint URL |
 | `--token` | ✅ Yes | - | Restricted/low-privilege token |
 | `--baseline-token` | ❌ No | - | Privileged token for cross-check |
-| `--public-mutations` | ❌ No | `""` | Comma-separated public mutations |
-| `--timeout` | ❌ No | `8` | Request timeout in seconds |
-| `--retries` | ❌ No | `1` | Retry count on connection errors |
-| `--workers` | ❌ No | `4` | Concurrent request threads |
+| `--public-mutations` | ❌ No | "" | Comma-separated public mutations |
+| `--timeout` | ❌ No | 8 | Request timeout in seconds |
+| `--retries` | ❌ No | 1 | Retry count on connection errors |
+| `--workers` | ❌ No | 4 | Concurrent request threads |
 | `--html-out` | ❌ No | `report.html` | HTML output path |
 | `--json-out` | ❌ No | `report.json` | JSON output path |
 | `--csv-out` | ❌ No | `report.csv` | CSV output path |
-| `--verbose` | ❌ No | `False` | Verbose output |
+| `--verbose` | ❌ No | False | Verbose output |
 
 ---
 
@@ -318,8 +386,6 @@ Total: 7 | 🔴 Critical: 5
 ✅ HTML report: report.html
 ✅ JSON report: report.json
 ✅ CSV report: report.csv
-
-📄 Reports: report.html, report.json, report.csv
 ```
 
 ---
@@ -347,52 +413,21 @@ Total: 7 | 🔴 Critical: 5
 ## 📂 Project Structure
 
 ```
-graphql-authz-fuzzer/
+GraphQL-API-Authorization-Fuzzer/
 ├── graphql_authz_fuzzer.py    # Main fuzzer script
-├── htoken.txt                 # Authentication token
-├── report.html                # HTML report
-├── report.json                # JSON report
-├── report.csv                 # CSV report
+├── dashboard/                  # Web dashboard
+│   ├── server.py              # Flask server
+│   └── templates/
+│       └── dashboard.html     # Dashboard UI
+├── cli/                       # Enhanced CLI
+│   └── enhanced_cli.py        # Interactive CLI
+├── core/                      # Core modules
+│   └── advanced_tests.py      # Advanced testing
+├── examples/
+│   └── config.yaml            # Example configuration
 ├── requirements.txt           # Python dependencies
 ├── LICENSE                    # MIT License
-├── .gitignore                 # Git ignore file
 └── README.md                  # This file
-```
-
----
-
-## 📊 Results
-
-### Tested Against DVGA
-
-| Mutation | Classification | Severity |
-|----------|---------------|----------|
-| **createPaste** | SUCCESS | 🔴 **CRITICAL** |
-| **editPaste** | SUCCESS | 🔴 **CRITICAL** |
-| **deletePaste** | SUCCESS | 🔴 **CRITICAL** |
-| **uploadPaste** | SUCCESS | 🔴 **CRITICAL** |
-| **importPaste** | SUCCESS | 🔴 **CRITICAL** |
-| **createUser** | SCHEMA_ERROR | ⚪ INFO |
-| **login** | RESOURCE_ERROR | 🟠 HIGH |
-
-### Summary
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    FINAL RESULTS                            │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│   Total Mutations Tested: 7                                 │
-│                                                             │
-│   🔴 CRITICAL: 5                                           │
-│   🟠 HIGH:     1                                           │
-│   🟢 SECURE:   0                                           │
-│   ⚪ INFO:     1                                           │
-│                                                             │
-│   Vulnerability Type: BFLA (CWE-285)                        │
-│   OWASP: API Security Top 10 - #5                           │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -403,23 +438,11 @@ graphql-authz-fuzzer/
 |------------|---------|
 | **Python 3.9+** | Core programming language |
 | **Requests** | HTTP client for API calls |
+| **Flask** | Web framework for dashboard |
+| **Chart.js** | Interactive charts |
 | **GraphQL** | API query language |
 | **Docker** | Containerization for DVGA |
 | **Concurrent.futures** | Multi-threaded scanning |
-
----
-
-## 🏆 Skills Demonstrated
-
-| Skill | How It's Demonstrated |
-|-------|----------------------|
-| **Python Development** | Built complete security tool from scratch |
-| **API Security** | Tested GraphQL authorization mechanisms |
-| **GraphQL Knowledge** | Introspection, mutations, schema parsing |
-| **Vulnerability Assessment** | Identified 5 critical BFLA vulnerabilities |
-| **Tool Building** | Created reusable security testing tool |
-| **Professional Reporting** | HTML, JSON, CSV outputs |
-| **Security Testing** | Automated authorization bypass testing |
 
 ---
 
@@ -432,7 +455,6 @@ graphql-authz-fuzzer/
 | **Heuristic Error Detection** | Relies on substring matching for auth errors |
 | **Generic Argument Values** | May cause schema validation errors |
 | **No Object-Level Testing** | Does not test BOLA (object-level authorization) |
-| **Single-Target Scope** | One endpoint per run |
 
 ---
 
@@ -446,66 +468,57 @@ graphql-authz-fuzzer/
 - [ ] Add support for OAuth scopes
 - [ ] Generate PDF reports
 - [ ] Add Slack/Email notifications
+- [ ] Add historical scan comparison
+- [ ] Implement role-based testing
 
 ---
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
 
 ---
 
 ## 👨‍💻 Author
 
 **Your Name**
-- GitHub: [@measwincm](https://github.com/measwincm)
-- LinkedIn: [Aswin C.M](https://in.linkedin.com/in/aswin-cm-1543aa37b)
 
+- GitHub: [@measwincm](https://github.com/measwincm)
+- LinkedIn: [Aswin C.M](https://www.linkedin.com/in/aswin-cm/)
 
 ---
 
 ## 🙏 Acknowledgments
 
-- [DVGA](https://github.com/dolevf/Damn-Vulnerable-GraphQL-Application) for the vulnerable test target
+- [DVGA](https://github.com/dolevf/DVGA) for the vulnerable test target
 - [OWASP](https://owasp.org/) for API Security guidelines
-- GraphQL community for introspection support
+- [GraphQL](https://graphql.org/) community for introspection support
 
 ---
 
 ## ⭐ Support
 
-If you found this project useful, please give it a star ⭐ on GitHub!
+If you found this project useful, please give it a **star** ⭐ on GitHub!
 
 ---
 
 ## 📊 Project Status
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                                                             │
-│          ✅ PROJECT COMPLETE - 100% DONE                   │
-│                                                             │
-│   GraphQL API Authorization Fuzzer                          │
-│   Version: 3.0                                              │
-│   Status: Production Ready                                  │
-│   Findings: 5 CRITICAL Vulnerabilities                      │
-│   Reports: HTML ✅ JSON ✅ CSV ✅                         |
-│                                                             │
-│   Ready for:                                                │
-│   - GitHub                                                  │
-│   - Resume                                                  │
-│   - LinkedIn                                                │
-│   - Interviews                                              │
-│                                                             │
+┌─ PROJECT COMPLETE ─────────────────────────────────────────┐
+
+  GraphQL API Authorization Fuzzer · v4.0
+
+  ● Production Ready
+  ● CLI        ● Dashboard        ● Reports
+  ● 5 CRITICAL vulnerabilities discovered in DVGA
+
+  GitHub · Resume · LinkedIn · Security Assessments
+
 └─────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
 **Made with ❤️ for API Security**
-
-
----
-
-
 
