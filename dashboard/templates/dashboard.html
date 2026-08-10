@@ -24,11 +24,7 @@
             --info: #4a90e2;
         }
         
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         
         body {
             font-family: 'IBM Plex Mono', monospace;
@@ -49,9 +45,7 @@
             color: var(--text-primary);
         }
         
-        .navbar-custom .navbar-brand span {
-            color: var(--info);
-        }
+        .navbar-custom .navbar-brand span { color: var(--info); }
         
         .status-badge {
             padding: 5px 15px;
@@ -102,60 +96,6 @@
         .stat-high .stat-number { color: var(--high); }
         .stat-secure .stat-number { color: var(--secure); }
         .stat-total .stat-number { color: var(--info); }
-        
-        .mutation-status {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 8px 12px;
-            background: var(--bg-panel);
-            border-radius: 6px;
-            margin-bottom: 5px;
-        }
-        
-        .mutation-status .icon {
-            font-size: 18px;
-        }
-        
-        .mutation-status .name {
-            flex: 1;
-            font-size: 14px;
-        }
-        
-        .mutation-status .severity {
-            font-size: 11px;
-            padding: 2px 10px;
-            border-radius: 12px;
-            font-weight: 500;
-        }
-        
-        .severity-critical { background: #ff475722; color: var(--critical); }
-        .severity-high { background: #ff6b3522; color: var(--high); }
-        .severity-secure { background: #2ed57322; color: var(--secure); }
-        .severity-info { background: #4a90e222; color: var(--info); }
-        
-        .progress-container {
-            background: var(--bg-panel);
-            border-radius: 10px;
-            padding: 15px;
-            margin: 15px 0;
-        }
-        
-        .progress-bar-custom {
-            height: 8px;
-            background: var(--bg-dark);
-            border-radius: 4px;
-            overflow: hidden;
-            margin-top: 10px;
-        }
-        
-        .progress-bar-custom .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, var(--info), var(--secure));
-            border-radius: 4px;
-            transition: width 0.3s ease;
-            width: 0%;
-        }
         
         .config-input {
             background: var(--bg-panel);
@@ -232,13 +172,8 @@
             font-size: 13px;
         }
         
-        .results-table tr:last-child td {
-            border-bottom: none;
-        }
-        
-        .results-table tr:hover {
-            background: var(--bg-panel);
-        }
+        .results-table tr:last-child td { border-bottom: none; }
+        .results-table tr:hover { background: var(--bg-panel); }
         
         .live-indicator {
             display: inline-block;
@@ -255,8 +190,18 @@
             height: 200px;
         }
         
-        .text-muted-custom {
-            color: var(--text-secondary);
+        .text-muted-custom { color: var(--text-secondary); }
+        
+        .severity-critical { background: #ff475722; color: var(--critical); }
+        .severity-high { background: #ff6b3522; color: var(--high); }
+        .severity-secure { background: #2ed57322; color: var(--secure); }
+        .severity-info { background: #4a90e222; color: var(--info); }
+        
+        .severity {
+            font-size: 11px;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-weight: 500;
         }
         
         @media (max-width: 768px) {
@@ -338,8 +283,8 @@
                             <span id="currentMutation" class="text-muted-custom" style="font-size:13px;">Waiting to start...</span>
                             <span id="progressText" class="text-muted-custom" style="font-size:13px;">0%</span>
                         </div>
-                        <div class="progress-bar-custom">
-                            <div class="progress-fill" id="progressFill"></div>
+                        <div class="progress-bar-custom" style="height:8px; background:var(--bg-dark); border-radius:4px; overflow:hidden; margin-top:10px;">
+                            <div class="progress-fill" id="progressFill" style="height:100%; background:linear-gradient(90deg, var(--info), var(--secure)); border-radius:4px; transition:width 0.3s ease; width:0%;"></div>
                         </div>
                         <div class="d-flex justify-content-between mt-2">
                             <span id="completedText" class="text-muted-custom" style="font-size:12px;">0 / 0</span>
@@ -428,7 +373,7 @@
     </div>
 
     <script>
-        const socket = io('http://localhost:5000', {
+        const socket = io('http://127.0.0.1:5000', {
             transports: ['websocket', 'polling'],
             reconnection: true,
             reconnectionAttempts: 5,
@@ -492,23 +437,6 @@
             });
         }
 
-        function updateResults(results) {
-            const tbody = document.getElementById('resultsBody');
-            if (!results || results.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted-custom">No results yet</td></tr>`;
-                return;
-            }
-
-            tbody.innerHTML = results.map(r => `
-                <tr>
-                    <td><strong>${r.mutation}</strong></td>
-                    <td>${r.classification}</td>
-                    <td><span class="severity severity-${r.severity.toLowerCase()}">${r.severity}</span></td>
-                    <td style="font-size:12px; color: var(--text-secondary);">${r.detail}</td>
-                </tr>
-            `).join('');
-        }
-
         function updateStats(results) {
             const critical = results.filter(r => r.severity === 'Critical').length;
             const high = results.filter(r => r.severity === 'High').length;
@@ -545,12 +473,12 @@
             document.getElementById('statusBadge').className = 'badge status-badge scanning';
 
             const results = document.getElementById('resultsBody');
+            const severityClass = `severity severity-${data.result.severity.toLowerCase()}`;
             const newRow = document.createElement('tr');
-            const severityClass = `severity-${data.result.severity.toLowerCase()}`;
             newRow.innerHTML = `
                 <td><strong>${data.mutation}</strong></td>
                 <td>${data.result.classification}</td>
-                <td><span class="severity ${severityClass}">${data.result.severity}</span></td>
+                <td><span class="${severityClass}">${data.result.severity}</span></td>
                 <td style="font-size:12px; color: var(--text-secondary);">${data.result.detail}</td>
             `;
             
@@ -631,9 +559,7 @@
         document.getElementById('resetBtn').addEventListener('click', () => {
             if (confirm('Reset all results?')) {
                 fetch('/api/reset')
-                    .then(() => {
-                        location.reload();
-                    });
+                    .then(() => { location.reload(); });
             }
         });
 
