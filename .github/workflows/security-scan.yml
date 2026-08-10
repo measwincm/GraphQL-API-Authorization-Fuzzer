@@ -1,0 +1,55 @@
+name: GraphQL Security Scan
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '0 0 * * 0'
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+    
+    - name: Run GraphQL AuthZ Fuzzer
+      env:
+        TARGET_URL: ${{ secrets.TARGET_URL }}
+        RESTRICTED_TOKEN: ${{ secrets.RESTRICTED_TOKEN }}
+        BASELINE_TOKEN: ${{ secrets.BASELINE_TOKEN }}
+      run: |
+        python graphql_authz_fuzzer.py \
+          --url "$TARGET_URL" \
+          --token "$RESTRICTED_TOKEN" \
+          --baseline-token "$BASELINE_TOKEN" \
+          --public-mutations "login,createUser" \
+          --html-out security-report.html \
+          --json-out security-report.json
+    
+    - name: Upload Reports
+      uses: actions/upload-artifact@v3
+      with:
+        name: security-reports
+        path: |
+          security-report.html
+          security-report.json
+          report.csv
+    
+    - name: Check for Vulnerabilities
+      run: |
+        if grep -q '"severity": "Critical"' security-report.json; then
+          echo "⚠️ Critical vulnerabilities found!"
+          exit 1
+        fi
