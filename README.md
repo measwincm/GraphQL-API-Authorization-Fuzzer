@@ -34,6 +34,8 @@ Automated GraphQL API security testing tool that detects **Broken Function Level
 
 The **GraphQL API Authorization Fuzzer** is an automated security testing tool that detects **Broken Function Level Authorization (BFLA)** vulnerabilities in GraphQL APIs. It tests whether a restricted (low-privilege) token can execute mutations it shouldn't have access to.
 
+<img src= "img/Screenshot 2026-08-10 195032.png">
+
 ### Core Workflow
 
 ```
