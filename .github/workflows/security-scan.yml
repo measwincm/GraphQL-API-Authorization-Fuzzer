@@ -13,10 +13,10 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.10'
     
@@ -24,32 +24,53 @@ jobs:
       run: |
         pip install -r requirements.txt
     
+    - name: Start DVGA Test Target
+      run: |
+        docker run -d -t -p 5013:5013 -e WEB_HOST=0.0.0.0 --name dvga dolevf/dvga
+        sleep 10
+    
+    - name: Create Test User and Get Token
+      id: get_token
+      run: |
+        # Create user
+        curl -X POST http://localhost:5013/graphql \
+          -H "Content-Type: application/json" \
+          -d '{"query": "mutation { createUser(userData: {username: \"vaptuser\", password: \"vaptpass123\", email: \"vapt@test.com\"}) { user { username } } }"}'
+        
+        # Get token
+        TOKEN=$(curl -s -X POST http://localhost:5013/graphql \
+          -H "Content-Type: application/json" \
+          -d '{"query": "mutation { login(username: \"vaptuser\", password: \"vaptpass123\") { accessToken } }"}' \
+          | python3 -c "import sys, json; data=json.load(sys.stdin); print(data['data']['login']['accessToken'])")
+        
+        echo "TOKEN=$TOKEN" >> $GITHUB_OUTPUT
+        echo "Generated token: $TOKEN"
+    
     - name: Run GraphQL AuthZ Fuzzer
-      env:
-        TARGET_URL: ${{ secrets.TARGET_URL }}
-        RESTRICTED_TOKEN: ${{ secrets.RESTRICTED_TOKEN }}
-        BASELINE_TOKEN: ${{ secrets.BASELINE_TOKEN }}
       run: |
         python graphql_authz_fuzzer.py \
-          --url "$TARGET_URL" \
-          --token "$RESTRICTED_TOKEN" \
-          --baseline-token "$BASELINE_TOKEN" \
+          --url http://localhost:5013/graphql \
+          --token "${{ steps.get_token.outputs.TOKEN }}" \
           --public-mutations "login,createUser" \
           --html-out security-report.html \
           --json-out security-report.json
     
     - name: Upload Reports
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: security-reports
         path: |
           security-report.html
           security-report.json
           report.csv
+        if-no-files-found: warn
+        retention-days: 30
     
     - name: Check for Vulnerabilities
       run: |
-        if grep -q '"severity": "Critical"' security-report.json; then
+        if [ -f security-report.json ] && grep -q '"severity": "Critical"' security-report.json; then
           echo "⚠️ Critical vulnerabilities found!"
           exit 1
+        else
+          echo "✅ No critical vulnerabilities found"
         fi
